@@ -44,11 +44,11 @@ test('quiet walking does not alarm; sprint by safe trips LEDs and gate, pushes b
 });
 test('walking cannot pass walls or closed entrance, zones remain distinct', () => {
   const s = createSimulation();
-  assert.equal(isWalkable(400,400),true);
+  assert.equal(isWalkable(400,340),true);
   assert.equal(isWalkable(600,100),false);
-  assert.equal(isWalkable(500,350),false);
-  assert.equal(zoneFor(400,420),'Sala');
-  assert.equal(zoneFor(800,420),'Estudio');
+  assert.equal(isWalkable(500,390),false);
+  assert.equal(zoneFor(400,340),'Sala');
+  assert.equal(zoneFor(800,340),'Estudio');
   s.player.y = 586;
   stepSimulation(s,{up:true},.05);
   assert.ok(s.player.y >= 580);

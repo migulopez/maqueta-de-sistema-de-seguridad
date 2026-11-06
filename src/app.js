@@ -1,5 +1,5 @@
 import { createScene } from './scene.js';
-import { createSimulation, stepSimulation, resetAlarm, zoneFor, clamp } from './simulation.js';
+import { createSimulation, stepSimulation, resetAlarm, zoneFor, clamp, collectNearby, ROOMS, MAX_SCORE, ROOM_SOUND_LIMIT } from './simulation.js';
 import { ArduinoConnection } from './hardware.js';
 
 const $ = selector => document.querySelector(selector);
@@ -12,11 +12,13 @@ let hardwareWarning = '';
 let soundEnabled = false;
 let audioContext = null;
 let lastAlarmTone = 0;
+let lastRoomTone = 0;
 let lastFrame = performance.now();
 let lastUI = 0;
 const keys = new Set();
 const touch = new Set();
 let touchRun = false;
+let touchCrouch = false;
 const transport = new ArduinoConnection(data => { telemetry = data; hardwareWarning = ''; }, message => { telemetry = null; hardwareWarning = message; });
 
 function beep(frequency = 780, duration = .12, volume = .055) {
@@ -39,33 +41,43 @@ const input = () => ({
   down: keys.has('s') || keys.has('arrowdown') || touch.has('down'),
   left: keys.has('a') || keys.has('arrowleft') || touch.has('left'),
   right: keys.has('d') || keys.has('arrowright') || touch.has('right'),
-  run: keys.has('shift') || touchRun
+  run: keys.has('shift') || touchRun,
+  crouch: keys.has('control') || keys.has('c') || touchCrouch
 });
 window.addEventListener('keydown', event => {
   if (document.activeElement?.tagName?.toLowerCase() === 'input' && event.key.toLowerCase() !== 'escape') return;
   const key = event.key.toLowerCase();
-  if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift','e'].includes(key)) event.preventDefault();
+  if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift','control','c','e'].includes(key)) event.preventDefault();
   keys.add(key);
-  if (key === 'e' && !event.repeat) inspectSafe();
+  if (key === 'e' && !event.repeat) interact();
 });
 window.addEventListener('keyup', event => keys.delete(event.key.toLowerCase()));
-window.addEventListener('blur', () => { keys.clear(); touch.clear(); touchRun = false; });
+window.addEventListener('blur', () => { keys.clear(); touch.clear(); touchRun = false; touchCrouch = false; });
 for (const button of document.querySelectorAll('[data-dir]')) {
   button.addEventListener('pointerdown', event => { event.preventDefault(); button.setPointerCapture(event.pointerId); touch.add(button.dataset.dir); });
   for (const type of ['pointerup','pointercancel','lostpointercapture']) button.addEventListener(type, () => touch.delete(button.dataset.dir));
 }
 $('#touch-run').addEventListener('pointerdown', event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); touchRun = true; });
 for (const type of ['pointerup','pointercancel','lostpointercapture']) $('#touch-run').addEventListener(type, () => touchRun = false);
+$('#touch-crouch').addEventListener('pointerdown', event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); touchCrouch = true; });
+for (const type of ['pointerup','pointercancel','lostpointercapture']) $('#touch-crouch').addEventListener(type, () => touchCrouch = false);
+$('#touch-interact').addEventListener('click', interact);
 
-function inspectSafe() {
-  if (Math.hypot(sim.player.x-600, sim.player.y-195) < 86) {
-    sim.notice = sim.alarm ? 'Caja fuerte bloqueada. Restablece la alarma.' : 'SF-01: acceso protegido. Evita hacer ruido en esta zona.';
-    $('#scene-hint').textContent = sim.notice;
-    beep(510, .09);
+function interact() {
+  // Read the held posture at the moment of the action, not only at the last animation frame.
+  sim.crouched = input().crouch;
+  const result = collectNearby(sim);
+  if (result) {
+    beep(result.points === 3 ? 1080 : 920, .18, .07);
+    if (sim.score === MAX_SCORE) setTimeout(() => beep(1320, .28, .07), 170);
   }
+  else if (sim.notice) beep(380, .08);
+  $('#scene-hint').textContent = sim.noticeUntil > sim.time ? sim.notice : 'Acércate a un tesoro para recogerlo';
 }
-$('#safe').addEventListener('click', inspectSafe);
-$('#safe').addEventListener('keydown', event => { if (event.key === 'Enter') inspectSafe(); });
+$('#safe').addEventListener('click', interact);
+$('#safe').addEventListener('keydown', event => { if (event.key === 'Enter') interact(); });
+$('#scene-container').addEventListener('click', event => { if (event.target.closest('[data-treasure]')) interact(); });
+$('#scene-container').addEventListener('keydown', event => { if (event.key === 'Enter' && event.target.closest('[data-treasure]')) interact(); });
 
 const cameraNames = { follow: 'SEGUIMIENTO', exterior: 'EXTERIOR', entrada: 'ENTRADA', pasillo: 'PASILLO', caja: 'CAJA FUERTE' };
 $('#camera-buttons').addEventListener('click', event => {
@@ -103,7 +115,7 @@ function reset() {
   camera = 'follow';
   document.querySelectorAll('[data-camera]').forEach(el => el.classList.toggle('selected', el.dataset.camera === 'follow'));
   $('#camera-name').textContent = cameraNames.follow;
-  keys.clear(); touch.clear();
+  keys.clear(); touch.clear(); touchRun = false; touchCrouch = false;
 }
 $('#reset-button').addEventListener('click', reset);
 $('#dismiss-alarm').addEventListener('click', () => {
@@ -180,6 +192,19 @@ function renderComponents(data, live) {
   $('#sensor-list').innerHTML = sensorRows.join('');
   $('#actuator-list').innerHTML = actuatorRows.join('');
 }
+function renderRoomAccess() {
+  const virtual = mode === 'simulation';
+  $('#room-list').innerHTML = ROOMS.map(room => {
+    const door = sim.rooms[room.id];
+    const denied = virtual && door.warningUntil > sim.time;
+    const open = virtual && door.servoAngle >= 67;
+    const className = denied ? 'warn' : door.collected ? 'found' : open ? 'open' : '';
+    const state = virtual ? denied ? tag('critical', 'Ruido · bloqueada') : tag(open ? 'on' : 'off', open ? 'Abierta' : 'Cerrada') : tag('off', 'Solo virtual');
+    return `<div class="room-access ${className}"><div class="room-access-head"><strong>${room.number} / ${room.name}</strong><small>${door.collected ? '◆ +1' : '◇ +1'}</small>${state}</div>
+      <div class="room-access-data"><span><small>HC-SR04 · 1 M</small>${virtual ? `${door.distanceCm} cm` : '—'}</span><span><small>SONIDO</small>${virtual ? `${door.sound} / 100` : '—'}</span><span><small>SERVO</small>${virtual ? `${Math.round(door.servoAngle)}°` : '—'}</span></div>
+      <div class="room-access-note">${virtual ? denied ? `Umbral ${ROOM_SOUND_LIMIT}: entra caminando, no corriendo` : door.collected ? 'Tesoro recuperado · 1 punto' : 'Proximidad ≤ 100 cm · acceso silencioso' : 'Sin sensor físico conectado · acceso del escenario virtual'}</div></div>`;
+  }).join('');
+}
 function simData() { return { ...sim, motor1: sim.gateState === 'Descendiendo' || sim.gateState === 'Ascendiendo', motor2: sim.gateState === 'Descendiendo' || sim.gateState === 'Ascendiendo' }; }
 function updateUI() {
   const live = mode === 'simulation' || (transport.connected && telemetry && Date.now() - transport.lastPacket < 2500);
@@ -188,9 +213,15 @@ function updateUI() {
   const alarm = Boolean(data?.alarm);
   const sound = typeof data?.sound === 'number' ? clamp(Math.round(data.sound),0,100) : null;
   const location = zoneFor(sim.player.x, sim.player.y);
+  const roomWarning = ROOMS.find(r => sim.rooms[r.id].warningUntil > sim.time);
   $('#location-value').textContent = location;
   $('#zone-name').textContent = `${location.toUpperCase()} ${mode === 'hardware' ? '· VISTA VIRTUAL' : ''}`;
   $('#movement-value').textContent = sim.movement;
+  $('#score-value').textContent = sim.score;
+  $('.mission-card').classList.toggle('complete', sim.score === MAX_SCORE);
+  $('#mission-label').innerHTML = sim.score === MAX_SCORE ? '¡Misión completada! <span>Todos los tesoros</span>' : 'Explora las seis salas <span>sin correr</span>';
+  $('#heading-score').textContent = `${sim.score} / ${MAX_SCORE} PTS`;
+  $('#treasure-progress').innerHTML = [...ROOMS.map(r => `<div class="treasure-chip ${sim.rooms[r.id].collected ? 'done' : ''}" title="${r.name}: 1 punto"><span class="gem">${sim.rooms[r.id].collected ? '◆' : '◇'}</span>${r.name}</div>`), `<div class="treasure-chip safe-chip ${sim.safeCollected ? 'done' : ''}" title="Caja fuerte: 3 puntos"><span class="gem">${sim.safeCollected ? '◆' : '◇'}</span>Caja +3</div>`].join('');
   $('#scene-coordinates').textContent = `X ${Math.round(sim.player.x)} · Y ${Math.round(sim.player.y)}`;
   $('#sound-value').textContent = sound === null ? '— / 100' : `${sound} / 100`;
   $('#sound-meter').style.width = `${sound ?? 0}%`;
@@ -205,9 +236,10 @@ function updateUI() {
   $('#overview-pill').textContent = !live ? 'SIN DATOS' : alarm ? 'ALERTA' : 'NORMAL';
   $('#mode-description').textContent = mode === 'simulation' ? 'Datos generados por simulación' : live ? 'Lecturas físicas · Arduino UNO' : 'No hay lecturas físicas disponibles';
   $('#alert-banner').hidden = !alarm;
-  $('#scene-hint').textContent = mode === 'hardware' ? 'Avatar virtual · sensores físicos independientes' : sim.notice || (location === 'Exterior' ? 'Acércate a la entrada para activar el sensor' : location === 'Caja fuerte' ? 'Camina en silencio junto a la caja fuerte' : 'Corre cerca de la caja fuerte para probar la alarma');
+  $('#scene-hint').textContent = mode === 'hardware' ? 'Salas virtuales · sensores físicos independientes' : roomWarning ? `${roomWarning.name}: sensor de sonido bloquea el acceso. Camina.` : (sim.noticeUntil > sim.time ? sim.notice : '') || (location === 'Exterior' ? 'Acércate a la entrada para activar el sensor' : location === 'Caja fuerte' ? 'Agáchate (CTRL) y pulsa E junto a la caja fuerte' : 'Explora caminando y recoge los tesoros con E');
   setModeUI();
   renderComponents(data, live);
+  renderRoomAccess();
 }
 function frame(now) {
   const dt = Math.min(.05, (now - lastFrame) / 1000); lastFrame = now;
@@ -215,6 +247,7 @@ function frame(now) {
   if (mode === 'simulation') {
     if (events.presenceStarted) beep(880, .16);
     if (events.alarmStarted) beep(420, .3, .09);
+    if (events.roomDenied && now - lastRoomTone > 900) { beep(360, .12); lastRoomTone = now; }
     if (sim.alarm && now - lastAlarmTone > 720) { beep(540, .25, .07); lastAlarmTone = now; }
   }
   // In hardware mode only reported actuator states drive the visual equipment.
