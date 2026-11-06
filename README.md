@@ -13,6 +13,12 @@ npm run dev
 
 Abre `http://localhost:4173`. Ejecuta `npm test` (Node.js 18+) para comprobar las reglas de la simulación. No uses `file://`: los módulos ES requieren un servidor HTTP. El diseño se adapta a escritorio, tablet y móvil.
 
+## Versión publicada en GitHub Pages
+
+**https://migulopez.github.io/maqueta-de-sistema-de-seguridad/**
+
+Cada actualización de `main` publica automáticamente los archivos estáticos mediante `.github/workflows/pages.yml` (también se puede lanzar manualmente desde **Actions → Publicar simulador en GitHub Pages**). No necesita instalación ni servidor backend para el modo simulación. La URL usa HTTPS, requisito del modo Web Serial en navegadores compatibles. Si el sitio acaba de activarse, la primera publicación puede tardar unos minutos.
+
 ## Recorrido interactivo
 
 - **WASD** o **flechas** para moverte; **Shift** para correr. En móviles, usa la cruceta y mantén pulsado **CORRER**.
