@@ -15,9 +15,11 @@ Abre `http://localhost:4173`. Ejecuta `npm test` (Node.js 18+) para comprobar la
 
 ## Versión publicada en GitHub Pages
 
-**https://migulopez.github.io/maqueta-de-sistema-de-seguridad/**
+**URL de GitHub Pages (una vez activado):** https://migulopez.github.io/maqueta-de-sistema-de-seguridad/
 
-Cada actualización de `main` publica automáticamente los archivos estáticos mediante `.github/workflows/pages.yml` (también se puede lanzar manualmente desde **Actions → Publicar simulador en GitHub Pages**). No necesita instalación ni servidor backend para el modo simulación. La URL usa HTTPS, requisito del modo Web Serial en navegadores compatibles. Si el sitio acaba de activarse, la primera publicación puede tardar unos minutos.
+**Activación inicial por el propietario:** en el repositorio de GitHub, entra en **Settings → Pages → Build and deployment → Source**, elige **GitHub Actions** y guarda. Luego abre **Actions → Publicar simulador en GitHub Pages → Run workflow → main → Run workflow**. La integración usada para publicar el código no tiene permisos para activar Pages en la configuración del repositorio; sin este paso la URL puede dar 404.
+
+Después de activarlo, cada actualización de `main` publica automáticamente los archivos estáticos mediante `.github/workflows/pages.yml`. No necesita instalación ni servidor backend para el modo simulación. La URL usa HTTPS, requisito del modo Web Serial en navegadores compatibles.
 
 ## Recorrido interactivo
 
