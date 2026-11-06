@@ -1,6 +1,6 @@
 # NEXO · Smart Home Lab
 
-Simulador interactivo 2D de una casa inteligente con acceso automático, iluminación LDR, detección ultrasónica y protección de caja fuerte por sonido. El repositorio original solo contenía este README; la aplicación está implementada en HTML, CSS y módulos JavaScript nativos, **sin dependencias de ejecución**.
+Simulador interactivo 2D de una casa inteligente con acceso automático, seis salas con puertas inteligentes y tesoros, iluminación LDR, detección ultrasónica y protección de caja fuerte por sonido. El repositorio original solo contenía este README; la aplicación está implementada en HTML, CSS y módulos JavaScript nativos, **sin dependencias de ejecución**.
 
 ## Iniciar
 
@@ -21,22 +21,24 @@ Abre `http://localhost:4173`. Ejecuta `npm test` (Node.js 18+) para comprobar la
 
 Después de activarlo, cada actualización de `main` publica automáticamente los archivos estáticos mediante `.github/workflows/pages.yml`. No necesita instalación ni servidor backend para el modo simulación. La URL usa HTTPS, requisito del modo Web Serial en navegadores compatibles.
 
-## Recorrido interactivo
+## Recorrido interactivo y puntuación
 
-- **WASD** o **flechas** para moverte; **Shift** para correr. En móviles, usa la cruceta y mantén pulsado **CORRER**.
-- Avanza desde el jardín a la puerta. El HC-SR04 virtual mide distancia, pulsa el buzzer/relé y el servo abre la puerta. Los finales de carrera cambian al llegar a 0° o 90°. Al alejarte, se cierra.
-- Entra al pasillo o atraviesa las puertas laterales para visitar sala y estudio. **E** o clic en la caja fuerte la inspecciona al estar cerca.
-- Baja **Luz ambiental**: el LDR virtual desciende y enciende las luminarias. Cambia el **alcance ultrasónico** y el **umbral de sonido** para experimentar.
-- Caminar genera poco sonido; correr cerca de la caja fuerte supera el umbral, activa LEDs y alarma, hace descender la reja con ambos motores y **obliga al personaje a retroceder**. El obstáculo impide cruzar mientras está abajo. Pulsa **Restablecer** para subirla o **Reiniciar simulación** para comenzar de nuevo.
-- Selecciona **Seguir**, **Exterior**, **Entrada**, **Pasillo** o **Caja fuerte** para cambiar entre cámaras virtuales. El botón de audio es optativo (los navegadores requieren interacción para reproducir sonidos).
+- **WASD** o **flechas** para moverte; **Shift** para correr; **Ctrl** o **C** para agacharte. En móviles, usa la cruceta y mantén pulsado **CORRER** o **AGACHAR**. **E** o el botón **RECOGER** para interactuar.
+- Avanza desde el jardín a la puerta principal. El HC-SR04 virtual mide distancia, pulsa el buzzer/relé y el servo abre la puerta. Sus dos finales de carrera cambian al llegar a 0° o 90°. Al alejarte, se cierra.
+- La casa tiene **seis salas**: Biblioteca, Laboratorio, Sala, Estudio, Cocina y Dormitorio. Cada puerta tiene **su propio ultrasónico de alcance fijo de 1 metro**, micrófono y servo animado. El sensor abre el acceso al acercarte **caminando o agachado**; si corres, el ruido dispara la advertencia de esa sala y no puedes atravesar la puerta, incluso si ya estaba abierta. Al reducir la velocidad y el ruido, la puerta permite pasar.
+- Cada sala contiene un tesoro de **1 punto**. Debes entrar y acercarte al objeto para recogerlo con **E** o tocándolo. Cada tesoro se recoge una sola vez.
+- La **caja fuerte** del extremo del pasillo vale **3 puntos**. Acércate, mantén **Ctrl/C** (o **AGACHAR** en móvil) y pulsa **E/RECOGER**. De pie no se abre. Si corres cerca, salta la alarma, la reja desciende y te obliga a retroceder; restablece la alarma para volver a intentar. Puntuación máxima: **9 puntos**.
+- Baja **Luz ambiental** para encender luces exteriores. Los controles de alcance ultrasónico y umbral de sonido ajustan el **acceso principal** y la **zona de seguridad**; el alcance de las seis puertas interiores permanece fijo en **100 cm**.
+- Selecciona **Seguir**, **Exterior**, **Entrada**, **Pasillo** o **Caja fuerte** para cambiar entre cámaras virtuales. El botón de audio es optativo (el navegador requiere interacción para reproducir sonidos).
 
-El panel derecho muestra permanentemente los 5 sensores y 8 actuadores, con estados y valores dinámicos. En pantallas estrechas se sitúa debajo de la escena, sin desaparecer; la barra compacta de estado permanece junto a la escena.
+El panel muestra en todo momento los sensores/actuadores originales y una sección para los seis accesos interiores con distancia, nivel de ruido, ángulo del servo y estado del tesoro. En pantallas estrechas se sitúa debajo de la escena; la barra compacta de estado permanece junto a ella.
 
 ## Arquitectura
 
 | Ruta | Responsabilidad |
 | --- | --- |
 | `index.html`, `styles.css` | Centro de control adaptable, escena y controles |
+| `src/rooms.js` | Geometría y configuración compartida de seis salas y tesoros |
 | `src/scene.js` | Planta SVG vectorial, animaciones de puerta/reja/lámparas/alarmas y cámaras virtuales |
 | `src/simulation.js` | Estado virtual y reglas deterministas: movimiento, colisiones, sensores y actuadores |
 | `src/app.js` | Entradas teclado/táctiles, audio opcional, telemetría, panel y ciclo de animación |
@@ -44,7 +46,7 @@ El panel derecho muestra permanentemente los 5 sensores y 8 actuadores, con esta
 | `arduino/NexoSmartHome/NexoSmartHome.ino` | Firmware de referencia para Arduino UNO |
 | `tests/simulation.test.js` | Pruebas automatizadas del modelo virtual |
 
-**Separación de datos:** los valores del modo Simulación son virtuales. En modo Arduino el avatar sigue siendo virtual, pero el panel **solo** muestra telemetría recibida del puerto físico; sin paquete reciente (2,5 segundos) aparecen guiones y una advertencia. El escenario muestra actuadores reportados por el Arduino, no los calculados por el avatar. La simulación nunca envía órdenes de actuadores al hardware. Las cámaras son 100 % virtuales: no se solicita acceso a la cámara del dispositivo.
+**Separación de datos:** los valores del modo Simulación son virtuales. En modo Arduino el avatar sigue siendo virtual, pero el panel **solo** muestra telemetría recibida del puerto físico; sin paquete reciente (2,5 segundos) aparecen guiones y una advertencia. El escenario muestra actuadores reportados por el Arduino, no los calculados por el avatar. La simulación nunca envía órdenes de actuadores al hardware. Las **seis salas nuevas y su puntuación son solo virtuales**: el firmware de referencia existente para UNO únicamente controla la entrada principal, iluminación, caja fuerte y reja. En modo Hardware los indicadores de sensores/servos de las salas muestran «Solo virtual» y guiones en vez de inventar lecturas físicas; el avatar y la misión siguen siendo virtuales. Para construir físicamente seis accesos adicionales se necesitan controladores/expansores de E/S, fuentes de alimentación adecuadas y un protocolo/firmware ampliado (un UNO con los pines actuales no dispone de E/S suficientes). Las cámaras son 100 % virtuales: no se solicita acceso a la cámara del dispositivo.
 
 ## Conectar un Arduino UNO (opcional)
 
