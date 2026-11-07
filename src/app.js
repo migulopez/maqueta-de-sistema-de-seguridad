@@ -21,6 +21,39 @@ let touchRun = false;
 let touchCrouch = false;
 const transport = new ArduinoConnection(data => { telemetry = data; hardwareWarning = ''; }, message => { telemetry = null; hardwareWarning = message; });
 
+// The guide is visible on every visit; reopening it pauses the virtual world.
+const helpModal = $('#help-modal');
+let helpOpen = true;
+let returnFocus = null;
+$('#help-start').focus({ preventScroll: true });
+function openHelp() {
+  if (helpOpen) return;
+  returnFocus = document.activeElement;
+  helpOpen = true;
+  keys.clear(); touch.clear(); touchRun = false; touchCrouch = false;
+  $('.app-shell').inert = true;
+  document.body.classList.add('help-active');
+  helpModal.hidden = false;
+  $('#help-start').focus({ preventScroll: true });
+}
+function closeHelp() {
+  if (!helpOpen) return;
+  helpOpen = false;
+  helpModal.hidden = true;
+  $('.app-shell').inert = false;
+  document.body.classList.remove('help-active');
+  lastFrame = performance.now();
+  (returnFocus?.isConnected ? returnFocus : $('#scene-container')).focus({ preventScroll: true });
+  returnFocus = null;
+}
+$('#help-start').addEventListener('click', closeHelp);
+$('#help-toggle').addEventListener('click', openHelp);
+helpModal.addEventListener('keydown', event => {
+  if (event.key === 'Escape') { event.preventDefault(); closeHelp(); }
+  // Only the start button is focusable in this modal; keep Tab inside it.
+  if (event.key === 'Tab') { event.preventDefault(); $('#help-start').focus(); }
+});
+
 function beep(frequency = 780, duration = .12, volume = .055) {
   if (!soundEnabled) return;
   try {
@@ -45,7 +78,9 @@ const input = () => ({
   crouch: keys.has('control') || keys.has('c') || touchCrouch
 });
 window.addEventListener('keydown', event => {
+  if (helpOpen) return;
   if (document.activeElement?.tagName?.toLowerCase() === 'input' && event.key.toLowerCase() !== 'escape') return;
+  if (event.key === '?') { event.preventDefault(); openHelp(); return; }
   const key = event.key.toLowerCase();
   if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift','control','c','e'].includes(key)) event.preventDefault();
   keys.add(key);
@@ -64,6 +99,7 @@ for (const type of ['pointerup','pointercancel','lostpointercapture']) $('#touch
 $('#touch-interact').addEventListener('click', interact);
 
 function interact() {
+  if (helpOpen) return;
   // Read the held posture at the moment of the action, not only at the last animation frame.
   sim.crouched = input().crouch;
   const result = collectNearby(sim);
@@ -243,8 +279,8 @@ function updateUI() {
 }
 function frame(now) {
   const dt = Math.min(.05, (now - lastFrame) / 1000); lastFrame = now;
-  const events = stepSimulation(sim, input(), dt);
-  if (mode === 'simulation') {
+  const events = helpOpen ? { presenceStarted: false, alarmStarted: false, roomDenied: null } : stepSimulation(sim, input(), dt);
+  if (mode === 'simulation' && !helpOpen) {
     if (events.presenceStarted) beep(880, .16);
     if (events.alarmStarted) beep(420, .3, .09);
     if (events.roomDenied && now - lastRoomTone > 900) { beep(360, .12); lastRoomTone = now; }

@@ -23,6 +23,8 @@ Después de activarlo, cada actualización de `main` publica automáticamente lo
 
 ## Recorrido interactivo y puntuación
 
+Al abrir la página aparece una **guía de bienvenida** con la misión y los controles. Pulsa **Comenzar misión** para jugar; puedes volver a abrirla con el botón **? GUÍA** de la barra superior. La simulación queda pausada mientras la guía está abierta.
+
 - **WASD** o **flechas** para moverte; **Shift** para correr; **Ctrl** o **C** para agacharte. En móviles, usa la cruceta y mantén pulsado **CORRER** o **AGACHAR**. **E** o el botón **RECOGER** para interactuar.
 - Avanza desde el jardín a la puerta principal. El HC-SR04 virtual mide distancia, pulsa el buzzer/relé y el servo abre la puerta. Sus dos finales de carrera cambian al llegar a 0° o 90°. Al alejarte, se cierra.
 - La casa tiene **seis salas**: Biblioteca, Laboratorio, Sala, Estudio, Cocina y Dormitorio. Cada puerta tiene **su propio ultrasónico de alcance fijo de 1 metro**, micrófono y servo animado. El sensor abre el acceso al acercarte **caminando o agachado**; si corres, el ruido dispara la advertencia de esa sala y no puedes atravesar la puerta, incluso si ya estaba abierta. Al reducir la velocidad y el ruido, la puerta permite pasar.

@@ -10,12 +10,12 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
-<body>
-  <div class="app-shell">
+<body class="help-active">
+  <div class="app-shell" inert>
     <header class="topbar">
       <div class="brand"><div class="brand-mark"><span></span><span></span><span></span></div><div><strong>NEXO<span class="brand-dot">.</span></strong><small>SMART HOME LAB</small></div></div>
       <div class="top-center"><span class="live-pulse"></span> SIMULADOR INTERACTIVO <span class="header-separator">/</span> CASA 01</div>
-      <div class="top-actions"><span id="clock" class="clock"></span><button id="sound-toggle" class="icon-button" title="Activar sonido" aria-label="Activar sonido">♪ <span id="sound-label">OFF</span></button><span id="connection-badge" class="connection-badge"><i></i> SIMULACIÓN</span></div>
+      <div class="top-actions"><span id="clock" class="clock"></span><button id="sound-toggle" class="icon-button" title="Activar sonido" aria-label="Activar sonido">♪ <span id="sound-label">OFF</span></button><button id="help-toggle" class="icon-button help-button" type="button" title="Ver instrucciones" aria-label="Ver instrucciones">? <span>GUÍA</span></button><span id="connection-badge" class="connection-badge"><i></i> SIMULACIÓN</span></div>
     </header>
 
     <main class="workspace">
@@ -24,7 +24,7 @@
 
         <div class="scene-frame">
           <div class="scene-toolbar"><div class="scene-title"><span class="view-icon">⌗</span> VISTA EN VIVO <span class="toolbar-divider">|</span> <span id="camera-name">SEGUIMIENTO</span></div><span class="scene-coordinates" id="scene-coordinates">X 600 · Y 710</span></div>
-          <div id="scene-container" class="scene-container" aria-label="Plano interactivo de la casa con personaje y sensores"></div>
+          <div id="scene-container" class="scene-container" tabindex="-1" aria-label="Plano interactivo de la casa con personaje y sensores"></div>
           <div class="scene-bottom"><span><i class="live-pulse"></i> <span id="zone-name">EXTERIOR</span></span><span id="scene-hint">Acércate a la entrada para activar el sensor</span><span class="scene-scale">● &nbsp; NEXO / 01</span></div>
           <div id="alert-banner" class="alert-banner" role="alert" hidden><span class="alert-symbol">⚠</span><div><strong>PROTOCOLO DE SEGURIDAD ACTIVADO</strong><small>Ruido excesivo detectado · reja de protección en movimiento</small></div><button id="dismiss-alarm" title="Restablecer alarma">RESTABLECER ↗</button></div>
           <div class="touch-controls" aria-label="Controles táctiles"><div class="dpad"><button data-dir="up" aria-label="Arriba">▲</button><div><button data-dir="left" aria-label="Izquierda">◀</button><button data-dir="down" aria-label="Abajo">▼</button><button data-dir="right" aria-label="Derecha">▶</button></div></div><div class="touch-actions"><button id="touch-crouch" class="crouch-touch" aria-label="Mantener para agacharse">AGACHAR<br>⌄</button><button id="touch-interact" class="interact-touch" aria-label="Recoger tesoro">RECOGER<br>E</button><button id="touch-run" class="run-touch">CORRER<br>⇧</button></div></div>
@@ -40,6 +40,24 @@
 
       <aside class="monitor" aria-label="Panel de monitoreo permanente"><div class="monitor-header"><div><span class="eyebrow">TELEMETRÍA / EN VIVO</span><h2>Centro de monitoreo</h2></div><span class="monitor-signal">▥</span></div><div class="system-overview"><div class="overview-heading"><span id="overview-icon" class="overview-icon">✓</span><div><small>ESTADO GENERAL</small><strong id="overview-status">Sistema operativo</strong></div><span id="overview-pill" class="overview-pill">NORMAL</span></div><div class="overview-line"><span id="mode-description">Datos generados por simulación</span><span class="signal-bars">▂▄▆</span></div></div><div class="mode-switch"><button id="simulation-mode" class="active">◈ &nbsp; Simulación</button><button id="hardware-mode">▣ &nbsp; Arduino UNO</button></div><div id="hardware-message" class="hardware-message" hidden>Web Serial necesita Chrome o Edge en HTTPS o localhost. Conecta un Arduino con el firmware incluido; nunca se mostrarán datos simulados como reales.</div><div class="monitor-scroll"><div class="group-heading"><span>SENSORES</span><span>05 COMPONENTES</span></div><div id="sensor-list" class="component-list"></div><div class="group-heading actuator-heading"><span>ACTUADORES</span><span>08 COMPONENTES</span></div><div id="actuator-list" class="component-list"></div><div class="group-heading room-heading"><span>ACCESOS A SALAS</span><span>06 ULTRASÓNICOS · 06 MICRÓFONOS · 06 SERVOS</span></div><div id="room-list" class="room-list"></div><div class="monitor-legend"><span><i class="legend-dot green"></i> Activo</span><span><i class="legend-dot yellow"></i> Proceso</span><span><i class="legend-dot red"></i> Alerta</span><span><i class="legend-dot gray"></i> Inactivo</span></div></div><div class="monitor-footer"><span><span class="footer-dot"></span> <span id="footer-mode">MODO SIMULACIÓN</span></span><span>v1.0 / NEXO</span></div></aside>
     </main>
+  </div>
+  <div id="help-modal" class="help-overlay" role="dialog" aria-modal="true" aria-labelledby="help-title" aria-describedby="help-description">
+    <div class="help-panel">
+      <div class="help-topline"><span><i class="live-pulse"></i> NEXO / GUÍA DE MISIÓN</span><span>01 — 03</span></div>
+      <div class="help-content">
+        <div class="help-hero"><div><span class="eyebrow">ANTES DE COMENZAR</span><h2 id="help-title">Bienvenido a la <span>casa inteligente.</span></h2><p id="help-description">Explora, escucha los sensores y recupera los tesoros sin activar el sistema de seguridad.</p></div><div class="help-score"><strong>09</strong><span>PUNTOS<br>POSIBLES</span></div></div>
+        <div class="help-section-label">TU MISIÓN <span>↘</span></div>
+        <div class="help-steps">
+          <div class="help-step"><span class="step-number">01</span><span class="step-icon">⌁</span><h3>Entra a la casa</h3><p>Acércate a la puerta principal: el sensor ultrasónico detectará tu presencia y abrirá el acceso.</p></div>
+          <div class="help-step"><span class="step-number">02</span><span class="step-icon">◇</span><h3>Explora las 6 salas</h3><p>Camina hacia cada puerta. Su sensor te detecta a <b>1 metro</b>; correr genera ruido y bloquea el paso. Recoge un tesoro de <b>+1 punto</b> en cada sala.</p></div>
+          <div class="help-step"><span class="step-number">03</span><span class="step-icon">▣</span><h3>Abre la caja fuerte</h3><p>Al final del pasillo, <b>agáchate</b> y recoge el tesoro de <b>+3 puntos</b>. Si corres cerca, saltará la alarma y bajará la reja.</p></div>
+        </div>
+        <div class="help-section-label">CONTROLES <span>⌨</span></div>
+        <div class="help-controls"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>o flechas · moverte</span></div><div><kbd>SHIFT</kbd><span>correr</span></div><div><kbd>CTRL</kbd><span>o C · agacharte</span></div><div><kbd>E</kbd><span>recoger tesoros</span></div></div>
+        <div class="help-mobile-note"><span>◈</span> En celular, usa la cruceta y los botones <b>CORRER</b>, <b>AGACHAR</b> y <b>RECOGER</b>.</div>
+      </div>
+      <div class="help-footer"><span>Consulta esta guía de nuevo con el botón <b>?</b> de arriba.</span><button id="help-start" type="button">COMENZAR MISIÓN <span>→</span></button></div>
+    </div>
   </div>
   <script type="module" src="./src/app.js"></script>
 </body>
