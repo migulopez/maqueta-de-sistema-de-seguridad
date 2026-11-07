@@ -71,3 +71,7 @@ El panel muestra en todo momento los sensores/actuadores originales y una secci�
 **Seguridad eléctrica:** no alimentes motores, luces de potencia ni servos desde los pines del UNO; utiliza fuentes externas adecuadas y masa común, protección contra retorno inductivo, fusibles y cableado apropiado. El firmware detiene los motores tras `GATE_TRAVEL_MS`, pero la posición de la reja es **estimada por tiempo**, no medida; instala finales de carrera adicionales y un paro de emergencia antes de controlar una reja física capaz de atrapar a alguien. Los dos finales de carrera incluidos son **solo de la puerta**. El ángulo del servo es un ángulo **ordenado**, no una lectura de encoder. Prueba la lógica primero con LEDs y sin cargas mecánicas.
 
 Si se pierde el enlace, la interfaz deja de presentar lecturas reales; el firmware autónomo sigue funcionando en el UNO. Para despliegues sin Web Serial se puede sustituir `src/hardware.js` por un puente serial local que emita el mismo JSON por WebSocket, sin alterar el modelo ni el panel.
+
+## Presentación de 15 diapositivas
+
+En [`presentacion/`](presentacion/) están el [PDF listo para exponer](presentacion/NEXO_Casa_Inteligente_15_Diapositivas.pdf) y el [PowerPoint editable](presentacion/NEXO_Casa_Inteligente_15_Diapositivas.pptx) sobre la misión, los controles, los componentes y la programación del simulador.
